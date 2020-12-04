@@ -41,7 +41,7 @@ Section = Union[OneArgType, TwoArgType, SectionalType]
 
 column_styles: List[Section] = [
     ('normal', 0),
-    ('rating', 2),
+    ('rating', 1),
     ('normal', 2),
     ('normal', 3),
     ('normal', 4),
@@ -61,7 +61,7 @@ column_styles: List[Section] = [
      ]),
     ('section', [
         ('name', 17),
-        ('rating_with_reasoning', 20),
+        ('rating', 20),
         ('normal', 18),
         ('normal', 19),
      ]),
