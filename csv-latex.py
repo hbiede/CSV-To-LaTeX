@@ -30,14 +30,16 @@ following formats:
   'name'. Thus, the first array in a 'section' format array must always be a 
   'name' format to permit splitting. Nesting 'section's is limited to 4 in
   depth.
-('name', X) where X is a single column index. This will create a (sub)section
-  header
+('name', X, B) where X is a single column index. This will create a (sub)section
+  header and B is a boolean (True or False) denoting if the section should
+  appear on a new page.
 ('text', X) where X is a string to be printed, as-is.
 """
-OneArgType = Tuple[Literal['normal', 'rating', 'name'], int]
+OneArgType = Tuple[Literal['normal', 'rating'], int]
 TwoArgType = Tuple[Literal['rating_with_reasoning', 'combo'], int, int]
 SectionalType = Tuple[Literal['section'], List[Iterable['Section']]]
-Section = Union[OneArgType, TwoArgType, SectionalType]
+NameType = Tuple[Literal['name'], bool]
+Section = Union[OneArgType, TwoArgType, SectionalType, NameType]
 
 column_styles: List[Section] = [
     ('normal', 0),
@@ -55,16 +57,16 @@ column_styles: List[Section] = [
     ('normal', 13),
     ('text', '\n\\pagebreak\n'),
     ('section', [
-        ('name', 14),
+        ('name', 14, False),
         ('normal', 15),
         ('rating', 16),
-     ]),
+    ]),
     ('section', [
-        ('name', 17),
+        ('name', 17, False),
         ('rating', 20),
         ('normal', 18),
         ('normal', 19),
-     ]),
+    ]),
     ('normal', 21),
     ('rating_with_reasoning', 23, 22),
     ('rating_with_reasoning', 25, 24),
@@ -112,7 +114,7 @@ def parse_rating(eval_data: List[List[str]], index: int) -> str:
             split_values = value.split(',')
             for split_value in split_values:
                 split_value_trimmed = split_value.strip()
-                rating_data[split_value_trimmed] =\
+                rating_data[split_value_trimmed] = \
                     rating_data[split_value_trimmed] + 1 if split_value_trimmed in rating_data else 1
     fig1, ax1 = plt.subplots()
     ax1.pie(rating_data.values(), labels=rating_data.keys(), autopct='%1.1f%%',
@@ -173,10 +175,11 @@ def parse_section(eval_data: List[List[str]], sections: List[Section], section_d
             section_data = list(filter(lambda row: row[sections[0][1]] == section_category_trimmed, eval_data))
             if len(section_data) > 0:
                 section_data.insert(0, eval_data[0])
+                if sections[0][2]:
+                    return_val += "\\pagebreak\n"
                 return_val += section_header(section_category_trimmed, section_depth + 1)
                 return_val += parse_evals(section_data, sections[1:], section_depth + 2)
     return return_val
-
 
 
 def parse_evals(eval_data: List[List[str]], sections: List[Section], section_depth: int = 0) -> str:
@@ -204,12 +207,11 @@ def parse_evals(eval_data: List[List[str]], sections: List[Section], section_dep
 
 if __name__ == '__main__':
     import os
+
     if not os.path.exists('./figures'):
         os.mkdir('./figures')
     arg_check()
-    latex = parse_evals(read_csv(), column_styles).replace('#', '\\#').replace('&', '\\&').replace('$', '\\$')\
+    latex = parse_evals(read_csv(), column_styles).replace('#', '\\#').replace('&', '\\&').replace('$', '\\$') \
         .replace('_', '\\_')
-    template = ''
     with open('template.tex', 'r') as output:
-        template = output.read().strip().replace('DATA_LATEX_OUTPUT', latex)
-    open('output.tex', 'w').write(template)
+        open('output.tex', 'w').write(output.read().strip().replace('DATA_LATEX_OUTPUT', latex))
