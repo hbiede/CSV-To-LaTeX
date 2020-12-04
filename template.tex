@@ -1,0 +1,81 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% LaTeX Template: Project Titlepage Modified (v 0.1) by rcx
+%
+% Original Source: http://www.howtotex.com
+% Date: February 2014
+% 
+% This is a title page template which be used for articles & reports.
+% 
+% This is the modified version of the original Latex template from
+% aforementioned website.
+% 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\documentclass[12pt,table,xcdraw]{report}
+\usepackage{geometry} %used for margins
+\usepackage{fancyhdr} %creates the header
+\usepackage{graphicx}
+\usepackage{pdfpages}
+\usepackage{float} %figure placement
+\usepackage[font=small, labelfont=bf]{caption}
+\usepackage{hyperref} %comment out before printing
+
+
+\newcommand\reportdate[0]{December 2020}
+
+
+\setlength{\parindent}{0em}
+
+\newcommand{\HRule}[1]{
+    \rule{\linewidth}{#1}
+}
+\setcounter{tocdepth}{3}
+\setcounter{secnumdepth}{0}
+
+%-------------------------------------------------------------------------------
+% HEADER & FOOTER
+%-------------------------------------------------------------------------------
+\pagestyle{fancy}
+\fancyhf{}
+\setlength\headheight{15pt}
+\fancyhead[L]{\reportdate}
+\fancyhead[R]{CSE LAP Retrospective}
+\fancyfoot[C]{\thepage}
+
+%-------------------------------------------------------------------------------
+% TITLE PAGE
+%-------------------------------------------------------------------------------
+
+\begin{document} {
+\fontfamily{cmr}\selectfont
+\title{ 
+    \normalsize \textsc{}
+    \\
+    \HRule{0.5pt} \\
+    \LARGE \textbf{
+        Learning Assistant Program\\
+        Semester Retrospective
+        \HRule{0.5pt} \\
+        \normalsize \vspace*{5\baselineskip}
+    }
+}
+
+\date{\reportdate}
+\author{ % subtitle text \\
+        University of Nebraska-Lincoln \\
+        Computer Science and Engineering (CSE) \\
+}
+
+\maketitle
+\tableofcontents
+\newpage
+\setlength{\parskip}{1em}
+
+%-------------------------------------------------------------------------------
+% BODY
+%-------------------------------------------------------------------------------
+
+
+DATA_LATEX_OUTPUT
+
+\end{document}
