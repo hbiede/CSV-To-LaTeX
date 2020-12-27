@@ -1,8 +1,9 @@
 #!/bin/env python3
+# Created by Hundter Biede
 import random
 import string
 import re
-from typing import List, Tuple, Literal, Iterable, Union
+from typing import List, Tuple, Literal, Union, Optional
 import matplotlib.pylab as plt
 import csv
 import sys
@@ -19,14 +20,17 @@ following formats:
 ('rating', X) where X is a single column index. This will print all responses
   as a pie chart. This column will also split on columns to count multiple
   values
-('rating_with_reasoning', X, Y) where X and Y are single column indices. This
-  will create a pie chart of the values in X, and a list of responses in Y,
-  where each response is prepended with its associated rating. The section
-  header will be the column header of column X.
+('rating_with_reasoning', X, Y, C) where X and Y are single column indices.
+  This will create a pie chart of the values in X, and a list of responses
+  in Y, where each response is prepended with its associated rating. The section
+  header will be the column header of column X. C will be the character used to
+  separate the rating from the response. A hyphen will be used if no C is
+  provided.
 ('rating_with_response_no_rating', X, Y) - Same as rating_with_reasoning, but
   without concatenation of the rating and response.
-('combo', X, Y) where X and Y are single column indices. This will print all
-  responses as a list, with X and Y concatenated with a hyphen.
+('combo', X, Y, C) where X and Y are single column indices. This will print all
+  responses as a list, with X and Y concatenated with character C (if no
+  character is provided, a hyphen will be used as default).
 ('section', A) where A is an array. This array should contain more nested
   arrays describing how the associated columns should be printed (think another
   document inside this one). Data in a section will be split by the values in
@@ -39,10 +43,11 @@ following formats:
 ('text', X) where X is a string to be printed, as-is.
 """
 OneArgType = Tuple[Literal['normal', 'rating'], int]
-TwoArgType = Tuple[Literal['rating_with_reasoning', 'combo'], int, int]
-SectionalType = Tuple[Literal['section'], List[Iterable['Section']]]
+TextArgType = Tuple[Literal['text'], str]
+TwoArgType = Tuple[Literal['rating_with_response_no_rating'], int, int]
+ThreeArgType = Tuple[Literal['rating_with_reasoning', 'combo'], int, int, Optional[str]]
 NameType = Tuple[Literal['name'], bool]
-Section = Union[OneArgType, TwoArgType, SectionalType, NameType]
+Section = Union[OneArgType, TextArgType, TwoArgType, ThreeArgType, NameType]
 
 column_styles: List[Section] = [
     ('normal', 0),
@@ -137,7 +142,7 @@ def parse_rating(eval_data: List[List[str]], index: int) -> str:
 
 def parse_combined_columns(eval_data: List[List[str]], index_a: int, index_b: int, delimiter: str = '-') -> str:
     return_val = "\\begin{itemize}\n"
-    for i in range(1, len(eval_data)):
+    for i in range(0, len(eval_data)):
         item_a = eval_data[i][index_a].strip()
         item_b = eval_data[i][index_b].strip()
         if len(item_a) > 0 and len(item_b) > 0:
@@ -150,11 +155,12 @@ def parse_combined_columns(eval_data: List[List[str]], index_a: int, index_b: in
 
 
 def parse_rating_with_reasoning(eval_data: List[List[str]], index_rating: int, index_reasoning: int,
-                                should_combine=True) -> str:
+                                should_combine=True, delimiter: str = '-') -> str:
     return "%s\n%s" % (
         parse_rating(eval_data, index_rating),
-        parse_combined_columns(eval_data, index_rating, index_reasoning) if should_combine else parse_normal(eval_data,
-                                                                                                             index_reasoning))
+        parse_combined_columns(eval_data, index_rating, index_reasoning, delimiter) if should_combine else parse_normal(
+            eval_data,
+            index_reasoning))
 
 
 def section_header(column_name: str, section_depth: int = 0) -> str:
@@ -171,7 +177,9 @@ def section_header(column_name: str, section_depth: int = 0) -> str:
         return "\\paragraph{%s}\n" % column_name
 
 
-def parse_section(eval_data: List[List[str]], sections: List[Section], section_depth: int = 0) -> str:
+def parse_section(eval_data: List[List[str]], sections, section_depth: int = 0) -> str:
+    if sections[0][0] != 'name':
+        return '\LARGE{error is section formatting. Must include a name}'
     return_val = section_header(eval_data[0][sections[0][1]], section_depth)
     section_categories = list(set(eval_data[i][sections[0][1]] for i in range(1, len(eval_data))))
     section_categories.sort()
@@ -195,16 +203,22 @@ def parse_evals(eval_data: List[List[str]], sections: List[Section], section_dep
     for section in sections:
         if isinstance(section[1], int):
             return_val += section_header(eval_data[0][section[1]], section_depth)
+
         if section[0] == 'normal':
-            return_val += parse_normal(eval_data, section[1])
+            return_val += parse_normal([eval_data[0]] + random.sample(eval_data[1:], len(eval_data) - 1), section[1])
         elif section[0] == 'rating':
-            return_val += parse_rating(eval_data, section[1])
+            return_val += parse_rating([eval_data[0]] + random.sample(eval_data[1:], len(eval_data) - 1), section[1])
         elif section[0] == 'rating_with_reasoning':
-            return_val += parse_rating_with_reasoning(eval_data, section[1], section[2], True)
+            return_val += parse_rating_with_reasoning([eval_data[0]] + random.sample(eval_data[1:], len(eval_data) - 1),
+                                                      section[1], section[2], True,
+                                                      section[3] if len(section) == 4 else '-')
         elif section[0] == 'rating_with_response_no_rating':
-            return_val += parse_rating_with_reasoning(eval_data, section[1], section[2], False)
+            return_val += parse_rating_with_reasoning([eval_data[0]] + random.sample(eval_data[1:], len(eval_data) - 1),
+                                                      section[1], section[2], False)
         elif section[0] == 'combo':
-            return_val += parse_combined_columns(eval_data, section[1], section[2])
+            return_val += parse_combined_columns([eval_data[0]] + random.sample(eval_data[1:], len(eval_data) - 1),
+                                                 section[1], section[2],
+                                                 section[3] if len(section) == 4 else '-')
         elif section[0] == 'section':
             return_val += parse_section(eval_data, section[1], section_depth)
         elif section[0] == 'text':
@@ -219,7 +233,7 @@ if __name__ == '__main__':
     if not os.path.exists('./figures'):
         os.mkdir('./figures')
     arg_check()
-    latex = parse_evals(read_csv(), column_styles).replace('#', '\\#').replace('&', '\\&').replace('$', '\\$') \
-        .replace('_', '\\_')
+    latex = parse_evals(read_csv(), column_styles).replace('#', r'\#').replace('&', r'\&').replace('$', r'\$') \
+        .replace('_', r'\_')
     with open('template.tex', 'r') as output:
         open('output.tex', 'w').write(output.read().strip().replace('DATA_LATEX_OUTPUT', latex))
