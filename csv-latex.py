@@ -1,6 +1,7 @@
 #!/bin/env python3
 import random
 import string
+import re
 from typing import List, Tuple, Literal, Iterable, Union
 import matplotlib.pylab as plt
 import csv
@@ -22,6 +23,8 @@ following formats:
   will create a pie chart of the values in X, and a list of responses in Y,
   where each response is prepended with its associated rating. The section
   header will be the column header of column X.
+('rating_with_response_no_rating', X, Y) - Same as rating_with_reasoning, but
+  without concatenation of the rating and response.
 ('combo', X, Y) where X and Y are single column indices. This will print all
   responses as a list, with X and Y concatenated with a hyphen.
 ('section', A) where A is an array. This array should contain more nested
@@ -113,7 +116,7 @@ def parse_rating(eval_data: List[List[str]], index: int) -> str:
         if len(value) > 0:
             split_values = value.split(',')
             for split_value in split_values:
-                split_value_trimmed = split_value.strip()
+                split_value_trimmed = re.sub('[!.?]$', '', split_value.strip().lower())
                 rating_data[split_value_trimmed] = \
                     rating_data[split_value_trimmed] + 1 if split_value_trimmed in rating_data else 1
     fig1, ax1 = plt.subplots()
@@ -146,9 +149,12 @@ def parse_combined_columns(eval_data: List[List[str]], index_a: int, index_b: in
     return return_val + "\\end{itemize}\n"
 
 
-def parse_rating_with_reasoning(eval_data: List[List[str]], index_rating: int, index_reasoning: int) -> str:
+def parse_rating_with_reasoning(eval_data: List[List[str]], index_rating: int, index_reasoning: int,
+                                should_combine=True) -> str:
     return "%s\n%s" % (
-        parse_rating(eval_data, index_rating), parse_combined_columns(eval_data, index_rating, index_reasoning))
+        parse_rating(eval_data, index_rating),
+        parse_combined_columns(eval_data, index_rating, index_reasoning) if should_combine else parse_normal(eval_data,
+                                                                                                             index_reasoning))
 
 
 def section_header(column_name: str, section_depth: int = 0) -> str:
@@ -194,7 +200,9 @@ def parse_evals(eval_data: List[List[str]], sections: List[Section], section_dep
         elif section[0] == 'rating':
             return_val += parse_rating(eval_data, section[1])
         elif section[0] == 'rating_with_reasoning':
-            return_val += parse_rating_with_reasoning(eval_data, section[1], section[2])
+            return_val += parse_rating_with_reasoning(eval_data, section[1], section[2], True)
+        elif section[0] == 'rating_with_response_no_rating':
+            return_val += parse_rating_with_reasoning(eval_data, section[1], section[2], False)
         elif section[0] == 'combo':
             return_val += parse_combined_columns(eval_data, section[1], section[2])
         elif section[0] == 'section':
