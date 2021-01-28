@@ -1,0 +1,16 @@
+[
+    ('rating', 2),
+    ('rating', 3),
+    ('normal', 4),
+    ('normal', 5),
+    ('rating', 6),
+    ('rating', 7),
+    ('normal', 8),
+    ('normal', 9),
+    ('normal', 10),
+    ('normal', 11),
+    ('normal', 12),
+    ('rating', 13),
+    ('rating', 14),
+    ('rating', 15),
+]

@@ -41,6 +41,8 @@ following formats:
   header and B is a boolean (True or False) denoting if the section should
   appear on a new page.
 ('text', X) where X is a string to be printed, as-is.
+('title', X) where X is the column from which the first value should be printed
+  as a (sub)section header
 """
 OneArgType = Tuple[Literal['normal', 'rating'], int]
 TextArgType = Tuple[Literal['text'], str]
@@ -49,40 +51,26 @@ ThreeArgType = Tuple[Literal['rating_with_reasoning', 'combo'], int, int, Option
 NameType = Tuple[Literal['name'], bool]
 Section = Union[OneArgType, TextArgType, TwoArgType, ThreeArgType, NameType]
 
+"""
+multiple_files_column, if greater than or equal to 0, splits the results into
+separate files grouped by common values from the given column.
+"""
+multiple_files_column = 1
 column_styles: List[Section] = [
-    ('normal', 0),
-    ('rating', 1),
-    ('normal', 2),
-    ('normal', 3),
+    ('rating', 2),
+    ('rating', 3),
     ('normal', 4),
     ('normal', 5),
     ('rating', 6),
-    ('rating_with_reasoning', 7, 8),
-    ('rating', 9),
+    ('rating', 7),
+    ('normal', 8),
+    ('normal', 9),
     ('normal', 10),
-    ('rating', 11),
+    ('normal', 11),
     ('normal', 12),
-    ('normal', 13),
-    ('text', '\n\\pagebreak\n'),
-    ('section', [
-        ('name', 14, False),
-        ('normal', 15),
-        ('rating', 16),
-    ]),
-    ('section', [
-        ('name', 17, False),
-        ('rating', 20),
-        ('normal', 18),
-        ('normal', 19),
-    ]),
-    ('normal', 21),
-    ('rating_with_reasoning', 23, 22),
-    ('rating_with_reasoning', 25, 24),
-    ('normal', 26),
-    ('rating', 27),
-    ('normal', 28),
-    ('normal', 29),
-    ('normal', 30)
+    ('rating', 13),
+    ('rating', 14),
+    ('rating', 15),
 ]
 
 
@@ -179,7 +167,7 @@ def section_header(column_name: str, section_depth: int = 0) -> str:
 
 def parse_section(eval_data: List[List[str]], sections, section_depth: int = 0) -> str:
     if sections[0][0] != 'name':
-        return '\LARGE{error is section formatting. Must include a name}'
+        return r'\LARGE{error is section formatting. Must include a name}'
     return_val = section_header(eval_data[0][sections[0][1]], section_depth)
     section_categories = list(set(eval_data[i][sections[0][1]] for i in range(1, len(eval_data))))
     section_categories.sort()
@@ -201,8 +189,10 @@ def parse_evals(eval_data: List[List[str]], sections: List[Section], section_dep
         return ""
     return_val = ""
     for section in sections:
-        if isinstance(section[1], int):
+        if isinstance(section[1], int) and section[0] != 'title':
             return_val += section_header(eval_data[0][section[1]], section_depth)
+        elif section[0] == 'title':
+            return_val += section_header(eval_data[1][section[1]], section_depth)
 
         if section[0] == 'normal':
             return_val += parse_normal([eval_data[0]] + random.sample(eval_data[1:], len(eval_data) - 1), section[1])
@@ -227,13 +217,37 @@ def parse_evals(eval_data: List[List[str]], sections: List[Section], section_dep
     return return_val
 
 
+def split_and_parse_sections(eval_data: List[List[str]], sections: List[Section], group_by_column) -> [str]:
+    section_categories = list(set(eval_data[i][group_by_column] for i in range(1, len(eval_data))))
+    section_categories.sort()
+    return_val = {}
+    for section_category in section_categories:
+        section_category_trimmed = section_category.strip()
+        if len(section_category_trimmed) > 0:
+            section_data = list(filter(lambda row: row[group_by_column] == section_category_trimmed, eval_data))
+            if len(section_data) > 0:
+                section_data.insert(0, eval_data[0])
+                return_val[section_category_trimmed] = parse_evals(section_data, sections)
+    return return_val
+
+
 if __name__ == '__main__':
     import os
 
     if not os.path.exists('./figures'):
         os.mkdir('./figures')
     arg_check()
-    latex = parse_evals(read_csv(), column_styles).replace('#', r'\#').replace('&', r'\&').replace('$', r'\$') \
-        .replace('_', r'\_')
-    with open('template.tex', 'r') as output:
-        open('output.tex', 'w').write(output.read().strip().replace('DATA_LATEX_OUTPUT', latex))
+    csv_data = read_csv()
+    if multiple_files_column < 0:
+        latex = parse_evals(csv_data, column_styles).replace('#', r'\#').replace('&', r'\&').replace('$', r'\$') \
+            .replace('_', r'\_')
+        with open('template.tex', 'r') as output:
+            open('output.tex', 'w').write(output.read().strip().replace('DATA_LATEX_OUTPUT', latex))
+    else:
+        latex_array = split_and_parse_sections(csv_data, column_styles, multiple_files_column)
+        with open('template.tex', 'r') as output:
+            output_text = output.read().strip()
+            for name in latex_array:
+                file_name = name.replace(' ', '')
+                open('%s.tex' % file_name, 'w').write(output_text.replace('NAME_PLACEHOLDER', name)\
+                                                      .replace('DATA_LATEX_OUTPUT', latex_array[name]))
