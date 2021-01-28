@@ -75,8 +75,12 @@ column_styles: List[Section] = [
 
 
 def arg_check() -> None:
-    if sys.argv[1] is None:
-        print("Usage: %s [data_file.csv]" % sys.argv[0], file=sys.stderr)
+    if sys.argv.count('--help') > 0 or sys.argv.count('-h') > 0:
+        print("Usage: %s [data file csv]" % sys.argv[0])
+        sys.exit(0)
+    if len(sys.argv) < 2 or sys.argv[1] is None:
+        print("Usage: %s [data file csv]" % sys.argv[0], file=sys.stderr)
+        sys.exit(1)
 
 
 def read_csv() -> List[List[str]]:
