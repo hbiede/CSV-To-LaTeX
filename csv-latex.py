@@ -73,6 +73,9 @@ column_styles: List[Section] = [
     ('rating', 15),
 ]
 
+figure_storage = './figures'
+figure_file_extension = 'png'
+
 
 def arg_check() -> None:
     if sys.argv.count('--help') > 0 or sys.argv.count('-h') > 0:
@@ -102,8 +105,11 @@ def parse_normal(eval_data: List[List[str]], index: int) -> str:
 
 
 def random_name(length: int) -> str:
-    letters = string.ascii_lowercase
-    return ''.join(random.choice(letters) for _ in range(length))
+    rand_name = ''
+    while rand_name == '' or os.path.exists('%s/%s.%s' % (figure_storage, rand_name, figure_file_extension)):
+        letters = string.ascii_lowercase
+        rand_name = ''.join(random.choice(letters) for _ in range(length))
+    return rand_name
 
 
 def parse_rating(eval_data: List[List[str]], index: int) -> str:
@@ -121,7 +127,7 @@ def parse_rating(eval_data: List[List[str]], index: int) -> str:
             shadow=True, startangle=90)
     ax1.axis('equal')
 
-    output_file = "./figures/%s.png" % random_name(6)
+    output_file = "./%s/%s.%s" % (figure_storage, random_name(6), figure_file_extension)
     open(output_file, "w").close()  # create the file if it doesn't exist
     plt.savefig(output_file)
     plt.close()
@@ -238,8 +244,8 @@ def split_and_parse_sections(eval_data: List[List[str]], sections: List[Section]
 if __name__ == '__main__':
     import os
 
-    if not os.path.exists('./figures'):
-        os.mkdir('./figures')
+    if not os.path.exists(figure_storage):
+        os.mkdir(figure_storage)
     arg_check()
     csv_data = read_csv()
     if multiple_files_column < 0:
