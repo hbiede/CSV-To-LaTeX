@@ -259,5 +259,5 @@ if __name__ == '__main__':
             output_text = output.read().strip()
             for name in latex_array:
                 file_name = name.replace(' ', '')
-                open('%s.tex' % file_name, 'w').write(output_text.replace('NAME_PLACEHOLDER', name)\
+                open('%s.tex' % file_name, 'w').write(output_text.replace('NAMEPLACEHOLDER', name) \
                                                       .replace('DATA_LATEX_OUTPUT', latex_array[name]))
