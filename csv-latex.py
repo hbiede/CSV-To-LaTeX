@@ -50,7 +50,6 @@ TwoArgType = Tuple[Literal['rating_with_response_no_rating'], int, int]
 ThreeArgType = Tuple[Literal['rating_with_reasoning', 'combo'], int, int, Optional[str]]
 NameType = Tuple[Literal['name'], bool]
 Section = Union[OneArgType, TextArgType, TwoArgType, ThreeArgType, NameType]
-
 """
 multiple_files_column, if greater than or equal to 0, splits the results into
 separate files grouped by common values from the given column.
@@ -96,6 +95,8 @@ def read_csv() -> List[List[str]]:
 
 
 def parse_normal(eval_data: List[List[str]], index: int) -> str:
+    if len(eval_data) <= 1:
+        return ''
     return_val = "\\begin{itemize}\n"
     for i in range(1, len(eval_data)):
         line = eval_data[i][index].strip()
@@ -122,6 +123,8 @@ def parse_rating(eval_data: List[List[str]], index: int) -> str:
                 split_value_trimmed = re.sub('[!.?]$', '', split_value.strip().lower())
                 rating_data[split_value_trimmed] = \
                     rating_data[split_value_trimmed] + 1 if split_value_trimmed in rating_data else 1
+    if len(rating_data.values()) == 0:
+        return ''
     fig1, ax1 = plt.subplots()
     ax1.pie(rating_data.values(), labels=rating_data.keys(), autopct='%1.1f%%',
             shadow=True, startangle=90)
@@ -139,6 +142,8 @@ def parse_rating(eval_data: List[List[str]], index: int) -> str:
 
 
 def parse_combined_columns(eval_data: List[List[str]], index_a: int, index_b: int, delimiter: str = '-') -> str:
+    if len(eval_data) <= 1:
+        return ''
     return_val = "\\begin{itemize}\n"
     for i in range(0, len(eval_data)):
         item_a = eval_data[i][index_a].strip()
@@ -187,10 +192,12 @@ def parse_section(eval_data: List[List[str]], sections, section_depth: int = 0) 
             section_data = list(filter(lambda row: row[sections[0][1]] == section_category_trimmed, eval_data))
             if len(section_data) > 0:
                 section_data.insert(0, eval_data[0])
-                if sections[0][2]:
-                    return_val += "\\pagebreak\n"
-                return_val += section_header(section_category_trimmed, section_depth + 1)
-                return_val += parse_evals(section_data, sections[1:], section_depth + 2)
+                section_contents = parse_evals(section_data, sections[1:], section_depth + 2)
+                if 'itemize' in section_contents and r'\item' in section_contents:
+                    if sections[0][2]:
+                        return_val += "\\pagebreak\n"
+                    return_val += section_header(section_category_trimmed, section_depth + 1)
+                    return_val += section_contents
     return return_val
 
 
@@ -205,7 +212,9 @@ def parse_evals(eval_data: List[List[str]], sections: List[Section], section_dep
             return_val += section_header(eval_data[1][section[1]], section_depth)
 
         if section[0] == 'normal':
-            return_val += parse_normal([eval_data[0]] + random.sample(eval_data[1:], len(eval_data) - 1), section[1])
+            contents = parse_normal([eval_data[0]] + random.sample(eval_data[1:], len(eval_data) - 1), section[1])
+            if 'itemize' in contents and r'\item' in contents:
+                return_val += contents
         elif section[0] == 'rating':
             return_val += parse_rating([eval_data[0]] + random.sample(eval_data[1:], len(eval_data) - 1), section[1])
         elif section[0] == 'rating_with_reasoning':
@@ -216,9 +225,11 @@ def parse_evals(eval_data: List[List[str]], sections: List[Section], section_dep
             return_val += parse_rating_with_reasoning([eval_data[0]] + random.sample(eval_data[1:], len(eval_data) - 1),
                                                       section[1], section[2], False)
         elif section[0] == 'combo':
-            return_val += parse_combined_columns([eval_data[0]] + random.sample(eval_data[1:], len(eval_data) - 1),
-                                                 section[1], section[2],
-                                                 section[3] if len(section) == 4 else '-')
+            contents = parse_combined_columns([eval_data[0]] + random.sample(eval_data[1:], len(eval_data) - 1),
+                                              section[1], section[2],
+                                              section[3] if len(section) == 4 else '-')
+            if 'itemize' in contents and r'\item' in contents:
+                return_val += contents
         elif section[0] == 'section':
             return_val += parse_section(eval_data, section[1], section_depth)
         elif section[0] == 'text':
