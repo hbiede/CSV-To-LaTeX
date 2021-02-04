@@ -1,4 +1,4 @@
-multiple_files_column = 0
+multiple_files_column = -1
 column_styles: List[Section] = [
     ('normal', 0),
     ('rating', 1),
