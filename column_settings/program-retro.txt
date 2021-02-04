@@ -1,4 +1,5 @@
-[
+multiple_files_column = 0
+column_styles: List[Section] = [
     ('normal', 0),
     ('rating', 1),
     ('normal', 2),
