@@ -7,6 +7,7 @@ from typing import List, Tuple, Literal, Union, Optional
 import matplotlib.pylab as plt
 import csv
 import sys
+from datetime import date
 
 """
 The manner in which the eval will be parsed is listed below. The outputted
@@ -251,6 +252,18 @@ def split_and_parse_sections(eval_data: List[List[str]], sections: List[Section]
                 return_val[section_category_trimmed] = parse_evals(section_data, sections)
     return return_val
 
+def replace_in_template(template_string: str) -> str:
+    return template_string \
+        .replace('REPLACEMENTDATE', date.today().strftime('%B %Y')) \
+        .replace('REPLACEMENTFULLDATE', date.today().strftime('%B %d, %Y')) \
+        .replace('REPLACEMENTISODATE', date.today().strftime('%Y-%m-%d')) \
+        .replace('REPLACEMENTYEAR', date.today().strftime('%Y')) \
+        .replace('REPLACEMENTMONTH', date.today().strftime('%B')) \
+        .replace('#', r'\#') \
+        .replace('&', r'\&') \
+        .replace('$', r'\$') \
+        .replace('_', r'\_')
+
 
 if __name__ == '__main__':
     import os
@@ -260,14 +273,15 @@ if __name__ == '__main__':
     arg_check()
     csv_data = read_csv()
     if multiple_files_column < 0:
-        latex = parse_evals(csv_data, column_styles).replace('#', r'\#').replace('&', r'\&').replace('$', r'\$') \
-            .replace('_', r'\_')
+        latex = parse_evals(csv_data, column_styles)
         with open('template.tex', 'r') as output:
-            open('output.tex', 'w').write(output.read().strip().replace('DATA_LATEX_OUTPUT', latex))
+            print_latex = replace_in_template(output.read().strip())
+            open('output.tex', 'w').write(print_latex.replace('DATA_LATEX_OUTPUT', latex))
     else:
         latex_array = split_and_parse_sections(csv_data, column_styles, multiple_files_column)
         with open('template.tex', 'r') as output:
             output_text = output.read().strip()
+            output_text = replace_in_template(output_text)
             for name in latex_array:
                 file_name = name.replace(' ', '')
                 open('%s.tex' % file_name, 'w').write(output_text.replace('NAMEPLACEHOLDER', name) \
