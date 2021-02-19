@@ -258,11 +258,7 @@ def replace_in_template(template_string: str) -> str:
         .replace('REPLACEMENTFULLDATE', date.today().strftime('%B %d, %Y')) \
         .replace('REPLACEMENTISODATE', date.today().strftime('%Y-%m-%d')) \
         .replace('REPLACEMENTYEAR', date.today().strftime('%Y')) \
-        .replace('REPLACEMENTMONTH', date.today().strftime('%B')) \
-        .replace('#', r'\#') \
-        .replace('&', r'\&') \
-        .replace('$', r'\$') \
-        .replace('_', r'\_')
+        .replace('REPLACEMENTMONTH', date.today().strftime('%B'))
 
 
 if __name__ == '__main__':
@@ -273,7 +269,11 @@ if __name__ == '__main__':
     arg_check()
     csv_data = read_csv()
     if multiple_files_column < 0:
-        latex = parse_evals(csv_data, column_styles)
+        latex = parse_evals(csv_data, column_styles) \
+          .replace('#', r'\#') \
+          .replace('&', r'\&') \
+          .replace('$', r'\$') \
+          .replace('_', r'\_')
         with open('template.tex', 'r') as output:
             print_latex = replace_in_template(output.read().strip())
             open('output.tex', 'w').write(print_latex.replace('DATA_LATEX_OUTPUT', latex))
@@ -285,4 +285,8 @@ if __name__ == '__main__':
             for name in latex_array:
                 file_name = name.replace(' ', '')
                 open('%s.tex' % file_name, 'w').write(output_text.replace('NAMEPLACEHOLDER', name) \
-                                                      .replace('DATA_LATEX_OUTPUT', latex_array[name]))
+                                                      .replace('DATA_LATEX_OUTPUT', latex_array[name] \
+                                                        .replace('#', r'\#') \
+                                                        .replace('&', r'\&') \
+                                                        .replace('$', r'\$') \
+                                                        .replace('_', r'\_')))
