@@ -99,7 +99,7 @@ def parse_normal(eval_data: List[List[str]], index: int) -> str:
     if len(eval_data) <= 1:
         return ''
     return_val = "\\begin{itemize}\n"
-    for i in range(1, len(eval_data)):
+    for i in random.sample(range(1, len(eval_data)), len(eval_data) - 1):
         line = eval_data[i][index].strip()
         if len(line) > 0:
             return_val += "\\item %s\n" % line
@@ -146,7 +146,7 @@ def parse_combined_columns(eval_data: List[List[str]], index_a: int, index_b: in
     if len(eval_data) <= 1:
         return ''
     return_val = "\\begin{itemize}\n"
-    for i in range(0, len(eval_data)):
+    for i in random.sample(range(0, len(eval_data)), len(eval_data) - 1):
         item_a = eval_data[i][index_a].strip()
         item_b = eval_data[i][index_b].strip()
         if len(item_a) > 0 and len(item_b) > 0:
