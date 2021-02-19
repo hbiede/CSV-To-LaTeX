@@ -78,6 +78,9 @@ figure_file_extension = 'png'
 
 
 def arg_check() -> None:
+    """
+    Validates the arguments passed to the script
+    """
     if sys.argv.count('--help') > 0 or sys.argv.count('-h') > 0:
         print("Usage: %s [data file csv]" % sys.argv[0])
         sys.exit(0)
@@ -87,6 +90,9 @@ def arg_check() -> None:
 
 
 def read_csv() -> List[List[str]]:
+    """
+    Reads in the data from the data argument and returns a nested list of strings
+    """
     with open(sys.argv[1], newline='') as csvfile:
         reader = csv.reader(csvfile, delimiter=',')
         return_val = []
@@ -96,6 +102,9 @@ def read_csv() -> List[List[str]]:
 
 
 def parse_normal(eval_data: List[List[str]], index: int) -> str:
+    """
+    Generates an itemized list of comments for a given column
+    """
     if len(eval_data) <= 1:
         return ''
     return_val = "\\begin{itemize}\n"
@@ -107,6 +116,9 @@ def parse_normal(eval_data: List[List[str]], index: int) -> str:
 
 
 def random_name(length: int) -> str:
+    """
+    Generates a random string of characters of a given length. All letters will be lowercase
+    """
     rand_name = ''
     while rand_name == '' or os.path.exists('%s/%s.%s' % (figure_storage, rand_name, figure_file_extension)):
         letters = string.ascii_lowercase
@@ -114,7 +126,41 @@ def random_name(length: int) -> str:
     return rand_name
 
 
+def parse_rating_as_bar(eval_data: List[List[str]], index: int) -> str:
+    """
+    Generates a bar chart representing the data
+    """
+    rating_data = {}
+    for i in range(1, len(eval_data)):
+        value = eval_data[i][index].strip()
+        if len(value) > 0:
+            split_values = value.split(',')
+            for split_value in split_values:
+                split_value_trimmed = re.sub('[!.?]$', '', split_value.strip().lower())
+                rating_data[split_value_trimmed] = \
+                    rating_data[split_value_trimmed] + 1 if split_value_trimmed in rating_data else 1
+    if len(rating_data.values()) == 0:
+        return ''
+    fig1, ax1 = plt.subplots()
+    ax1.pie(rating_data.values(), labels=rating_data.keys(), autopct='%1.1f%%',
+            shadow=True, startangle=90)
+    ax1.axis('equal')
+
+    output_file = "./%s/%s.%s" % (figure_storage, random_name(6), figure_file_extension)
+    open(output_file, "w").close()  # create the file if it doesn't exist
+    plt.savefig(output_file)
+    plt.close()
+    return (("\\begin{figure}[H]\n" +
+             "\\centering\n" +
+             "\\includegraphics[width=0.65\\textwidth]{%s}\n" +
+             "\\centering\n" +
+             "\\end{figure}\n") % output_file)
+
+
 def parse_rating(eval_data: List[List[str]], index: int) -> str:
+    """
+    Generates a pie chart representing the data
+    """
     rating_data = {}
     for i in range(1, len(eval_data)):
         value = eval_data[i][index].strip()
@@ -143,6 +189,9 @@ def parse_rating(eval_data: List[List[str]], index: int) -> str:
 
 
 def parse_combined_columns(eval_data: List[List[str]], index_a: int, index_b: int, delimiter: str = '-') -> str:
+    """
+    Combines two columns worth of data into a single list of comments, separated by a delimiter
+    """
     if len(eval_data) <= 1:
         return ''
     return_val = "\\begin{itemize}\n"
@@ -160,6 +209,10 @@ def parse_combined_columns(eval_data: List[List[str]], index_a: int, index_b: in
 
 def parse_rating_with_reasoning(eval_data: List[List[str]], index_rating: int, index_reasoning: int,
                                 should_combine=True, delimiter: str = '-') -> str:
+    """
+    Generates a pie chart for ratings along with their comments associated.
+    If should_combine is set to true, then the comments are prefaced with their rating score.
+    """
     return "%s\n%s" % (
         parse_rating(eval_data, index_rating),
         parse_combined_columns(eval_data, index_rating, index_reasoning, delimiter) if should_combine else parse_normal(
@@ -168,6 +221,9 @@ def parse_rating_with_reasoning(eval_data: List[List[str]], index_rating: int, i
 
 
 def section_header(column_name: str, section_depth: int = 0) -> str:
+    """
+    Generate a section header of the appropriate type for the current section depth
+    """
     if section_depth < 0 or section_depth > 3:
         return column_name
 
@@ -182,6 +238,9 @@ def section_header(column_name: str, section_depth: int = 0) -> str:
 
 
 def parse_section(eval_data: List[List[str]], sections, section_depth: int = 0) -> str:
+    """
+    Parse sections that are being split according to the 'section' style
+    """
     if sections[0][0] != 'name':
         return r'\LARGE{error is section formatting. Must include a name}'
     return_val = section_header(eval_data[0][sections[0][1]], section_depth)
@@ -203,6 +262,9 @@ def parse_section(eval_data: List[List[str]], sections, section_depth: int = 0) 
 
 
 def parse_evals(eval_data: List[List[str]], sections: List[Section], section_depth: int = 0) -> str:
+    """
+    Parse ever column based on the style definitions above.
+    """
     if section_depth < 0 or section_depth > 2:
         return ""
     return_val = ""
@@ -240,6 +302,9 @@ def parse_evals(eval_data: List[List[str]], sections: List[Section], section_dep
 
 
 def split_and_parse_sections(eval_data: List[List[str]], sections: List[Section], group_by_column) -> [str]:
+    """
+    Parses the data as though it were separate data sets filtered on a given column
+    """
     section_categories = list(set(eval_data[i][group_by_column] for i in range(1, len(eval_data))))
     section_categories.sort()
     return_val = {}
@@ -252,7 +317,11 @@ def split_and_parse_sections(eval_data: List[List[str]], sections: List[Section]
                 return_val[section_category_trimmed] = parse_evals(section_data, sections)
     return return_val
 
+
 def replace_in_template(template_string: str) -> str:
+    """
+    Replace template strings with dynamic text at generation
+    """
     return template_string \
         .replace('REPLACEMENTDATE', date.today().strftime('%B %Y')) \
         .replace('REPLACEMENTFULLDATE', date.today().strftime('%B %d, %Y')) \
@@ -262,6 +331,9 @@ def replace_in_template(template_string: str) -> str:
 
 
 if __name__ == '__main__':
+    """
+    Create LaTeX files
+    """
     import os
 
     if not os.path.exists(figure_storage):
@@ -270,10 +342,10 @@ if __name__ == '__main__':
     csv_data = read_csv()
     if multiple_files_column < 0:
         latex = parse_evals(csv_data, column_styles) \
-          .replace('#', r'\#') \
-          .replace('&', r'\&') \
-          .replace('$', r'\$') \
-          .replace('_', r'\_')
+            .replace('#', r'\#') \
+            .replace('&', r'\&') \
+            .replace('$', r'\$') \
+            .replace('_', r'\_')
         with open('template.tex', 'r') as output:
             print_latex = replace_in_template(output.read().strip())
             open('output.tex', 'w').write(print_latex.replace('DATA_LATEX_OUTPUT', latex))
@@ -286,7 +358,7 @@ if __name__ == '__main__':
                 file_name = name.replace(' ', '')
                 open('%s.tex' % file_name, 'w').write(output_text.replace('NAMEPLACEHOLDER', name) \
                                                       .replace('DATA_LATEX_OUTPUT', latex_array[name] \
-                                                        .replace('#', r'\#') \
-                                                        .replace('&', r'\&') \
-                                                        .replace('$', r'\$') \
-                                                        .replace('_', r'\_')))
+                                                               .replace('#', r'\#') \
+                                                               .replace('&', r'\&') \
+                                                               .replace('$', r'\$') \
+                                                               .replace('_', r'\_')))
