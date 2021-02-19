@@ -137,7 +137,7 @@ def parse_rating(eval_data: List[List[str]], index: int) -> str:
     plt.close()
     return (("\\begin{figure}[H]\n" +
              "\\centering\n" +
-             "\\includegraphics[width=0.8\\textwidth]{%s}\n" +
+             "\\includegraphics[width=0.65\\textwidth]{%s}\n" +
              "\\centering\n" +
              "\\end{figure}\n") % output_file)
 
