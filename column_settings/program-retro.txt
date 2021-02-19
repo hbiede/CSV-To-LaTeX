@@ -1,5 +1,5 @@
 multiple_files_column = -1
-column_styles: List[Section] = [
+column_styles: List = [
     ('normal', 2),
     ('rating', 3),
     ('normal', 4),

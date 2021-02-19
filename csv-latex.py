@@ -3,12 +3,17 @@
 import random
 import string
 import re
-from typing import List, Tuple, Literal, Union, Optional
+from typing import List, Dict
 import matplotlib.pylab as plt
 import csv
 import sys
 from datetime import date
 
+"""
+multiple_files_column, if greater than or equal to 0, splits the results into
+separate files grouped by common values from the given column.
+"""
+multiple_files_column = 1
 """
 The manner in which the eval will be parsed is listed below. The outputted
 LaTeX file will follow the order and formatting assigned below.
@@ -19,8 +24,7 @@ following formats:
 ('normal', X) where X is a single column index. This will print all responses
   as a list
 ('rating', X) where X is a single column index. This will print all responses
-  as a pie chart. This column will also split on columns to count multiple
-  values
+  as a pie chart.
 ('rating_with_reasoning', X, Y, C) where X and Y are single column indices.
   This will create a pie chart of the values in X, and a list of responses
   in Y, where each response is prepended with its associated rating. The section
@@ -29,6 +33,17 @@ following formats:
   provided.
 ('rating_with_response_no_rating', X, Y) - Same as rating_with_reasoning, but
   without concatenation of the rating and response.
+('score', X, Y?) where X is a single column index. This will print all responses
+  as a bar chart. Y is the max score possible and is optional.
+('score_with_reasoning', X, Y, C?, Z?) where X and Y are single column indices.
+  This will create a pie chart of the values in X, and a list of responses
+  in Y, where each response is prepended with its associated rating. The section
+  header will be the column header of column X. C will be the character used to
+  separate the rating from the response and is optional. A hyphen will be used
+  if no C is provided. Z is the max score possible and is optional.
+('score_with_response_no_rating', X, Y, Z?) - Same as rating_with_reasoning, but
+  without concatenation of the rating and response. Z is the max score possible
+  and is optional.
 ('combo', X, Y, C) where X and Y are single column indices. This will print all
   responses as a list, with X and Y concatenated with character C (if no
   character is provided, a hyphen will be used as default).
@@ -45,18 +60,7 @@ following formats:
 ('title', X) where X is the column from which the first value should be printed
   as a (sub)section header
 """
-OneArgType = Tuple[Literal['normal', 'rating'], int]
-TextArgType = Tuple[Literal['text'], str]
-TwoArgType = Tuple[Literal['rating_with_response_no_rating'], int, int]
-ThreeArgType = Tuple[Literal['rating_with_reasoning', 'combo'], int, int, Optional[str]]
-NameType = Tuple[Literal['name'], bool]
-Section = Union[OneArgType, TextArgType, TwoArgType, ThreeArgType, NameType]
-"""
-multiple_files_column, if greater than or equal to 0, splits the results into
-separate files grouped by common values from the given column.
-"""
-multiple_files_column = 1
-column_styles: List[Section] = [
+column_styles: List = [
     ('rating', 2),
     ('rating', 3),
     ('normal', 4),
@@ -108,7 +112,7 @@ def parse_normal(eval_data: List[List[str]], index: int) -> str:
     if len(eval_data) <= 1:
         return ''
     return_val = "\\begin{itemize}\n"
-    for i in random.sample(range(1, len(eval_data)), len(eval_data) - 1):
+    for i in range(1, len(eval_data)):
         line = eval_data[i][index].strip()
         if len(line) > 0:
             return_val += "\\item %s\n" % line
@@ -126,10 +130,7 @@ def random_name(length: int) -> str:
     return rand_name
 
 
-def parse_rating_as_bar(eval_data: List[List[str]], index: int) -> str:
-    """
-    Generates a bar chart representing the data
-    """
+def parse_numeric_scores(eval_data: List[List[str]], index: int) -> Dict[str, int]:
     rating_data = {}
     for i in range(1, len(eval_data)):
         value = eval_data[i][index].strip()
@@ -139,13 +140,13 @@ def parse_rating_as_bar(eval_data: List[List[str]], index: int) -> str:
                 split_value_trimmed = re.sub('[!.?]$', '', split_value.strip().lower())
                 rating_data[split_value_trimmed] = \
                     rating_data[split_value_trimmed] + 1 if split_value_trimmed in rating_data else 1
-    if len(rating_data.values()) == 0:
-        return ''
-    fig1, ax1 = plt.subplots()
-    ax1.pie(rating_data.values(), labels=rating_data.keys(), autopct='%1.1f%%',
-            shadow=True, startangle=90)
-    ax1.axis('equal')
+    return rating_data
 
+
+def save_and_return_plot() -> str:
+    """
+    Generates a plotted image and returns the latex code to display it
+    """
     output_file = "./%s/%s.%s" % (figure_storage, random_name(6), figure_file_extension)
     open(output_file, "w").close()  # create the file if it doesn't exist
     plt.savefig(output_file)
@@ -155,21 +156,35 @@ def parse_rating_as_bar(eval_data: List[List[str]], index: int) -> str:
              "\\includegraphics[width=0.65\\textwidth]{%s}\n" +
              "\\centering\n" +
              "\\end{figure}\n") % output_file)
+
+
+def parse_score(eval_data: List[List[str]], index: int, max_score: int = None) -> str:
+    """
+    Generates a bar chart representing the data
+    """
+    rating_data = parse_numeric_scores(eval_data, index)
+    if len(rating_data.values()) == 0:
+        return ''
+    max_usable = max([int(i) for i in rating_data.keys()]) if max_score is None else max_score
+    buckets = [i for i in range(max_usable + 1)]
+    scores = [0 if rating_data.get(i.__str__()) is None else rating_data.get(i.__str__()) for i in
+              range(max_usable + 1)]
+    print(buckets)
+    print(scores)
+    print("")
+
+    plt.bar(buckets, scores, color='blue')
+    plt.xlabel("Score")
+    plt.ylabel("Number of Ratings")
+
+    return save_and_return_plot()
 
 
 def parse_rating(eval_data: List[List[str]], index: int) -> str:
     """
     Generates a pie chart representing the data
     """
-    rating_data = {}
-    for i in range(1, len(eval_data)):
-        value = eval_data[i][index].strip()
-        if len(value) > 0:
-            split_values = value.split(',')
-            for split_value in split_values:
-                split_value_trimmed = re.sub('[!.?]$', '', split_value.strip().lower())
-                rating_data[split_value_trimmed] = \
-                    rating_data[split_value_trimmed] + 1 if split_value_trimmed in rating_data else 1
+    rating_data = parse_numeric_scores(eval_data, index)
     if len(rating_data.values()) == 0:
         return ''
     fig1, ax1 = plt.subplots()
@@ -177,34 +192,39 @@ def parse_rating(eval_data: List[List[str]], index: int) -> str:
             shadow=True, startangle=90)
     ax1.axis('equal')
 
-    output_file = "./%s/%s.%s" % (figure_storage, random_name(6), figure_file_extension)
-    open(output_file, "w").close()  # create the file if it doesn't exist
-    plt.savefig(output_file)
-    plt.close()
-    return (("\\begin{figure}[H]\n" +
-             "\\centering\n" +
-             "\\includegraphics[width=0.65\\textwidth]{%s}\n" +
-             "\\centering\n" +
-             "\\end{figure}\n") % output_file)
+    return save_and_return_plot()
 
 
-def parse_combined_columns(eval_data: List[List[str]], index_a: int, index_b: int, delimiter: str = '-') -> str:
+def parse_combined_columns(eval_data: List[List[str]], index_a: int, index_b: int, delimiter: str = ' - ') -> str:
     """
     Combines two columns worth of data into a single list of comments, separated by a delimiter
     """
     if len(eval_data) <= 1:
         return ''
     return_val = "\\begin{itemize}\n"
-    for i in random.sample(range(0, len(eval_data)), len(eval_data) - 1):
+    for i in range(1, len(eval_data)):
         item_a = eval_data[i][index_a].strip()
         item_b = eval_data[i][index_b].strip()
         if len(item_a) > 0 and len(item_b) > 0:
-            return_val += "\\item %s %s %s\n" % (item_a, delimiter, item_b)
+            return_val += "\\item %s%s%s\n" % (item_a, delimiter, item_b)
         elif len(item_a) > 0:
             return_val += "\\item %s\n" % item_a
         elif len(item_b) > 0:
             return_val += "\\item %s\n" % item_b
     return return_val + "\\end{itemize}\n"
+
+
+def parse_score_with_reasoning(eval_data: List[List[str]], index_rating: int, index_reasoning: int,
+                               should_combine=True, delimiter: str = '-', max_score=None) -> str:
+    """
+    Generates a bar chart for ratings along with their comments associated.
+    If should_combine is set to true, then the comments are prefaced with their rating score.
+    """
+    return "%s\n%s" % (
+        parse_score(eval_data, index_rating, max_score=max_score),
+        parse_combined_columns(eval_data, index_rating, index_reasoning, delimiter) if should_combine else parse_normal(
+            eval_data,
+            index_reasoning))
 
 
 def parse_rating_with_reasoning(eval_data: List[List[str]], index_rating: int, index_reasoning: int,
@@ -261,7 +281,7 @@ def parse_section(eval_data: List[List[str]], sections, section_depth: int = 0) 
     return return_val
 
 
-def parse_evals(eval_data: List[List[str]], sections: List[Section], section_depth: int = 0) -> str:
+def parse_evals(eval_data: List[List[str]], sections: List, section_depth: int = 0) -> str:
     """
     Parse ever column based on the style definitions above.
     """
@@ -287,6 +307,21 @@ def parse_evals(eval_data: List[List[str]], sections: List[Section], section_dep
         elif section[0] == 'rating_with_response_no_rating':
             return_val += parse_rating_with_reasoning([eval_data[0]] + random.sample(eval_data[1:], len(eval_data) - 1),
                                                       section[1], section[2], False)
+        elif section[0] == 'score':
+            return_val += parse_score([eval_data[0]] + random.sample(eval_data[1:], len(eval_data) - 1), section[1])
+        elif section[0] == 'score_with_reasoning':
+            return_val += parse_score_with_reasoning([eval_data[0]] + random.sample(eval_data[1:], len(eval_data) - 1),
+                                                     section[1], section[2], True,
+                                                     section[3] if len(section) == 4 else '-')
+        elif section[0] == 'score_with_response_no_rating':
+            if len(section) < 4:
+                return_val += parse_score_with_reasoning(
+                    [eval_data[0]] + random.sample(eval_data[1:], len(eval_data) - 1),
+                    section[1], section[2], False)
+            else:
+                return_val += parse_score_with_reasoning(
+                    [eval_data[0]] + random.sample(eval_data[1:], len(eval_data) - 1),
+                    section[1], section[2], False, sections[5])
         elif section[0] == 'combo':
             contents = parse_combined_columns([eval_data[0]] + random.sample(eval_data[1:], len(eval_data) - 1),
                                               section[1], section[2],
@@ -301,7 +336,7 @@ def parse_evals(eval_data: List[List[str]], sections: List[Section], section_dep
     return return_val
 
 
-def split_and_parse_sections(eval_data: List[List[str]], sections: List[Section], group_by_column) -> [str]:
+def split_and_parse_sections(eval_data: List[List[str]], sections: List, group_by_column) -> [str]:
     """
     Parses the data as though it were separate data sets filtered on a given column
     """
@@ -356,9 +391,9 @@ if __name__ == '__main__':
             output_text = replace_in_template(output_text)
             for name in latex_array:
                 file_name = name.replace(' ', '')
-                open('%s.tex' % file_name, 'w').write(output_text.replace('NAMEPLACEHOLDER', name) \
-                                                      .replace('DATA_LATEX_OUTPUT', latex_array[name] \
-                                                               .replace('#', r'\#') \
-                                                               .replace('&', r'\&') \
-                                                               .replace('$', r'\$') \
+                open('%s.tex' % file_name, 'w').write(output_text.replace('NAMEPLACEHOLDER', name)
+                                                      .replace('DATA_LATEX_OUTPUT', latex_array[name]
+                                                               .replace('#', r'\#')
+                                                               .replace('&', r'\&')
+                                                               .replace('$', r'\$')
                                                                .replace('_', r'\_')))
