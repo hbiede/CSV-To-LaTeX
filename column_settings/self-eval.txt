@@ -1,0 +1,15 @@
+multiple_files_column = 1
+column_styles: List = [
+    ('rating_with_reasoning', 3, 4),
+    ('normal', 5),
+    ('rating_with_reasoning', 6, 7),
+    ('normal', 8),
+    ('rating_with_reasoning', 9, 10),
+    ('normal', 11),
+    ('rating_with_reasoning', 12, 13),
+    ('normal', 14),
+    ('normal', 15),
+    ('normal', 16),
+    ('combo', 17, 18),
+    ('normal', 19)
+]

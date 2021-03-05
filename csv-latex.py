@@ -147,7 +147,7 @@ def save_and_return_plot() -> str:
     """
     Generates a plotted image and returns the latex code to display it
     """
-    output_file = "./%s/%s.%s" % (figure_storage, random_name(6), figure_file_extension)
+    output_file = "%s/%s.%s" % (figure_storage, random_name(6), figure_file_extension)
     open(output_file, "w").close()  # create the file if it doesn't exist
     plt.savefig(output_file)
     plt.close()
@@ -169,9 +169,6 @@ def parse_score(eval_data: List[List[str]], index: int, max_score: int = None) -
     buckets = [i for i in range(max_usable + 1)]
     scores = [0 if rating_data.get(i.__str__()) is None else rating_data.get(i.__str__()) for i in
               range(max_usable + 1)]
-    print(buckets)
-    print(scores)
-    print("")
 
     plt.bar(buckets, scores, color='blue')
     plt.xlabel("Score")
@@ -215,7 +212,7 @@ def parse_combined_columns(eval_data: List[List[str]], index_a: int, index_b: in
 
 
 def parse_score_with_reasoning(eval_data: List[List[str]], index_rating: int, index_reasoning: int,
-                               should_combine=True, delimiter: str = '-', max_score=None) -> str:
+                               should_combine=True, delimiter: str = ' - ', max_score=None) -> str:
     """
     Generates a bar chart for ratings along with their comments associated.
     If should_combine is set to true, then the comments are prefaced with their rating score.
@@ -228,7 +225,7 @@ def parse_score_with_reasoning(eval_data: List[List[str]], index_rating: int, in
 
 
 def parse_rating_with_reasoning(eval_data: List[List[str]], index_rating: int, index_reasoning: int,
-                                should_combine=True, delimiter: str = '-') -> str:
+                                should_combine=True, delimiter: str = ' - ') -> str:
     """
     Generates a pie chart for ratings along with their comments associated.
     If should_combine is set to true, then the comments are prefaced with their rating score.
@@ -303,7 +300,7 @@ def parse_evals(eval_data: List[List[str]], sections: List, section_depth: int =
         elif section[0] == 'rating_with_reasoning':
             return_val += parse_rating_with_reasoning([eval_data[0]] + random.sample(eval_data[1:], len(eval_data) - 1),
                                                       section[1], section[2], True,
-                                                      section[3] if len(section) == 4 else '-')
+                                                      section[3] if len(section) == 4 else ' - ')
         elif section[0] == 'rating_with_response_no_rating':
             return_val += parse_rating_with_reasoning([eval_data[0]] + random.sample(eval_data[1:], len(eval_data) - 1),
                                                       section[1], section[2], False)
@@ -312,7 +309,7 @@ def parse_evals(eval_data: List[List[str]], sections: List, section_depth: int =
         elif section[0] == 'score_with_reasoning':
             return_val += parse_score_with_reasoning([eval_data[0]] + random.sample(eval_data[1:], len(eval_data) - 1),
                                                      section[1], section[2], True,
-                                                     section[3] if len(section) == 4 else '-')
+                                                     section[3] if len(section) == 4 else ' - ')
         elif section[0] == 'score_with_response_no_rating':
             if len(section) < 4:
                 return_val += parse_score_with_reasoning(
@@ -396,4 +393,5 @@ if __name__ == '__main__':
                                                                .replace('#', r'\#')
                                                                .replace('&', r'\&')
                                                                .replace('$', r'\$')
+                                                               .replace('^', r'\string^')
                                                                .replace('_', r'\_')))

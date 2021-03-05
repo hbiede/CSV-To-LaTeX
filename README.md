@@ -1,6 +1,7 @@
 # CSV to LaTeX
 Takes a CSV file and converts the data in its columns into a LaTeX file based on a section
-definition at the top of `csv-latex.py`.
+definition at the top of `csv-latex.py`. `compile.sh` has also been provided to easily
+compile all LaTeX files in the PWD (except `template.tex`).
 
 ## Setup
 ### Initial Setup
