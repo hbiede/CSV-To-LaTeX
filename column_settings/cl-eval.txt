@@ -2,10 +2,10 @@ multiple_files_column = 2
 column_styles: List = [
     ('combo', 3, 4),
     ('combo', 5, 6),
-    ('rating_with_reasoning', 7, 8),
-    ('rating_with_reasoning', 9, 10),
+    ('score_with_reasoning', 7, 8, 7),
+    ('score_with_reasoning', 9, 10, 7),
     ('combo', 11, 12),
-    ('rating_with_reasoning', 13, 14),
+    ('score_with_reasoning', 13, 14, 7),
     ('normal', 15),
     ('normal', 16),
     ('normal', 17)

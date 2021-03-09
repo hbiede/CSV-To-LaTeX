@@ -1,4 +1,4 @@
 multiple_files_column = 0
 column_styles: List = [
-    ('rating_with_reasoning', 1, 2)
+    ('rating_with_reasoning', 1, 2, 10)
 ]
