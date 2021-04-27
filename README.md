@@ -13,7 +13,7 @@ You will need a manner to compile LaTeX scripts.
 
 #### Mac Setup
 Run the following to install LaTeX:
-`brew cask install basictex`
+`brew install basictex`
 
 This should make the `lualatex` and `latexmk` commands available to you.
 You can then pass a LaTeX file to either to compile it into a PDF.
