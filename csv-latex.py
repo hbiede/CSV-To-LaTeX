@@ -361,6 +361,16 @@ def replace_in_template(template_string: str) -> str:
         .replace('REPLACEMENTYEAR', date.today().strftime('%Y')) \
         .replace('REPLACEMENTMONTH', date.today().strftime('%B'))
 
+def get_template_file() -> str:
+    if os.path.exists(template_file_name):
+        return template_file_name
+    else:
+        joined_path = os.path.join(os.path.dirname(sys.argv[0]), template_file_name)
+        if os.path.exists(joined_path):
+            return joined_path
+        else:
+            print('Failed to find template LaTeX file', file=sys.stderr)
+
 
 if __name__ == '__main__':
     """
@@ -372,18 +382,19 @@ if __name__ == '__main__':
         os.mkdir(figure_storage)
     arg_check()
     csv_data = read_csv()
+    template_file = get_template_file()
     if multiple_files_column < 0:
         latex = parse_evals(csv_data, column_styles) \
             .replace('#', r'\#') \
             .replace('&', r'\&') \
             .replace('$', r'\$') \
             .replace('_', r'\_')
-        with open('template.tex', 'r') as output:
+        with open(template_file, 'r') as output:
             print_latex = replace_in_template(output.read().strip())
             open('output.tex', 'w').write(print_latex.replace('DATA_LATEX_OUTPUT', latex))
     else:
         latex_array = split_and_parse_sections(csv_data, column_styles, multiple_files_column)
-        with open('template.tex', 'r') as output:
+        with open(template_file, 'r') as output:
             output_text = output.read().strip()
             output_text = replace_in_template(output_text)
             for name in latex_array:
